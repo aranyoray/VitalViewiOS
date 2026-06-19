@@ -56,11 +56,14 @@ function valNoise(x: number): number {
 
 export class MockSignal {
   readonly p: MockParams;
-  private readonly rrUs: number;
 
   constructor(params: Partial<MockParams> = {}) {
     this.p = { ...DEFAULT_MOCK_PARAMS, ...params };
-    this.rrUs = (60 / this.p.hrBpm) * US_PER_S;
+  }
+
+  /** R–R interval (µs); recomputed from the current HR so it tracks live changes. */
+  private get rrUs(): number {
+    return (60 / this.p.hrBpm) * US_PER_S;
   }
 
   get rrMicros(): number {

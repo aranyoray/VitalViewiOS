@@ -40,10 +40,7 @@ export class PpgFootDetector {
   private head = 0;
   private filled = 0;
 
-  constructor(
-    private readonly fs: number,
-    learnMs = 1500,
-  ) {
+  constructor(fs: number, learnMs = 1500) {
     this.lp = new MovingAverage(Math.max(1, Math.round(fs * 0.03)));
     this.refractoryUs = (QRS_REFRACTORY_MS / 1000) * 1e6;
     this.learnUntilSample = Math.round((learnMs / 1000) * fs);

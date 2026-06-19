@@ -46,10 +46,7 @@ export class RPeakDetector {
   private bpHead = 0;
   private bpFilled = 0;
 
-  constructor(
-    private readonly fs: number,
-    learnMs = 1500,
-  ) {
+  constructor(fs: number, learnMs = 1500) {
     this.bandpass = Biquad.bandpass(ECG_BP_LOW_HZ, ECG_BP_HIGH_HZ, fs);
     const integWidth = Math.max(1, Math.round((QRS_INTEG_MS / 1000) * fs));
     this.integrator = new MovingAverage(integWidth);
