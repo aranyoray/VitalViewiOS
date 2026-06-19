@@ -1,0 +1,22 @@
+# Node / web
+node_modules/
+web/node_modules/
+web/dist/
+web/coverage/
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# Xcode / iOS
+ios/build/
+ios/DerivedData/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/.swiftpm/
+*.xcuserstate
+
+# Editor
+.vscode/
+.idea/
