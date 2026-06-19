@@ -136,7 +136,7 @@ enum Parsers {
             let fw = "\(r.getUInt8(1)).\(r.getUInt8(2)).\(r.getUInt8(3))"
             var id = ""
             for i in 0..<6 {
-                id += String(format: "%02x", r.getUInt8(4 + i))
+                id += String(format: "%02x", Int(r.getUInt8(4 + i)))
             }
             return .info(InfoMessage(
                 firmwareVersion: fw,

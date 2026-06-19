@@ -160,11 +160,18 @@ final class AppModel: ObservableObject {
 
     func setMockParams(_ mutate: @escaping (inout MockParams) -> Void) {
         (source as? MockSource)?.setParams(mutate)
+        objectWillChange.send() // reflect mock-param changes in the Settings UI
     }
 
     func injectMockMotion() {
         (source as? MockSource)?.injectMotion()
     }
+
+    /// Current mock parameters (defaults when no mock source is active), for Settings.
+    private var mockParams: MockParams { (source as? MockSource)?.getParams() ?? .default }
+    var mockHrBpm: Double { mockParams.hrBpm }
+    var mockPatMs: Double { mockParams.patMs }
+    var mockSpo2: Double { mockParams.spo2Target }
 
     // MARK: - Subjects
 
@@ -367,8 +374,11 @@ final class AppModel: ObservableObject {
         ev.status
             .receive(on: DispatchQueue.main)
             .sink { [weak self] s in
-                self?.errorFlags = s.errorFlags
-                self?.batteryPct = s.batteryPct
+                guard let self else { return }
+                self.errorFlags = s.errorFlags
+                self.batteryPct = s.batteryPct
+                // Keep the clock-sync indicator fresh once SYNC_CLOCK has completed.
+                self.clockOffsetUs = self.source?.clockOffsetUs
             }
             .store(in: &cancellables)
 

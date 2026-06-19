@@ -69,14 +69,14 @@ enum CSVExport {
     static func buildSessionMeta(_ d: BundleData) -> String {
         // Build an ordered dictionary tree and serialize with sorted keys disabled,
         // relying on JSONSerialization. Matches the web schema (schemaVersion 1).
-        var sessionObj: [String: Any] = [
+        let sessionObj: [String: Any] = [
             "id": d.session.id,
             "subjectCode": d.session.subjectCode,
             "label": d.session.label.rawValue,
             "deviceId": d.session.deviceId,
             "firmwareVersion": d.session.firmwareVersion,
             "startedAt": d.session.startedAt,
-            "endedAt": d.session.endedAt as Any? ?? NSNull(),
+            "endedAt": d.session.endedAt.map { $0 as Any } ?? NSNull(),
             "notes": d.session.notes,
             "metricsSource": d.session.metricsSource.rawValue,
             "gating": [
@@ -85,14 +85,13 @@ enum CSVExport {
                 "windowMs": d.session.gating.windowMs,
             ],
         ]
-        if d.session.endedAt == nil { sessionObj["endedAt"] = NSNull() }
 
         let subjectObj: [String: Any]
         if let s = d.subject {
             subjectObj = [
                 "code": s.code,
                 "ageBand": s.ageBand,
-                "sex": s.sex as Any? ?? NSNull(),
+                "sex": s.sex.map { $0 as Any } ?? NSNull(),
                 "notes": s.notes,
             ]
         } else {

@@ -2,9 +2,11 @@
 <!--
   VitalView Info.plist.
 
-  XcodeGen merges additional keys from project.yml `targets.VitalView.info.properties`
-  into this file at generation time. This base file declares the essentials so the
-  project is well-formed even when inspected directly.
+  IMPORTANT: `xcodegen generate` REGENERATES this file from the keys under
+  `targets.VitalView.info.properties` in project.yml (XcodeGen writes the merged plist to
+  this path). project.yml is therefore the source of truth for Info.plist keys; this
+  committed copy is an equivalent reference so the project is well-formed if inspected
+  before generation. Keep the two in sync.
 
   NOTE: VitalView is a research / educational tool, NOT a medical device.
 -->

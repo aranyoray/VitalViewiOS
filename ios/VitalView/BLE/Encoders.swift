@@ -122,7 +122,8 @@ enum Encoders {
             let start = i * 2
             var byteVal: UInt8 = 0
             if start + 1 < chars.count {
-                byteVal = UInt8(String(chars[start...start + 1]), radix: 16) ?? 0
+                let pair = String(chars[start]) + String(chars[start + 1])
+                byteVal = UInt8(pair, radix: 16) ?? 0
             }
             w.setUInt8(4 + i, byteVal)
         }
