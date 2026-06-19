@@ -12,7 +12,7 @@ import { PatEstimator } from './pat';
 import { PpgFootDetector } from './ppgFoot';
 import { RPeakDetector } from './rpeak';
 import { Spo2Estimator } from './spo2';
-import { predictBp, type CalibrationFit } from './calibration';
+import { predictBp, type CalibCoeffs } from './calibration';
 
 export interface MetricsSnapshot extends Omit<MetricsPacket, 'kind'> {}
 
@@ -27,10 +27,14 @@ export class MetricsEngine {
   private ppgFs = 0;
   private biozFs = 0;
   private rpeakFlag = false;
-  private calib: CalibrationFit | null = null;
+  private calib: CalibCoeffs | null = null;
   private motionThresh?: number;
 
-  setCalibration(fit: CalibrationFit | null): void {
+  /** Recent detected event times (µs), capped — for waveform markers. */
+  readonly recentRPeaks: number[] = [];
+  readonly recentFeet: number[] = [];
+
+  setCalibration(fit: CalibCoeffs | null): void {
     this.calib = fit;
   }
 
@@ -52,6 +56,7 @@ export class MetricsEngine {
         this.hr.addRPeak(r);
         this.pat.addRPeak(r);
         this.rpeakFlag = true;
+        pushCapped(this.recentRPeaks, r);
       }
     }
   }
@@ -75,7 +80,10 @@ export class MetricsEngine {
     for (let i = 0; i < p.green.length; i++) {
       const t = p.tUs + Math.round(i * dt);
       const f = this.foot.process(p.green[i], t);
-      if (f != null) this.pat.addFoot(f);
+      if (f != null) {
+        this.pat.addFoot(f);
+        pushCapped(this.recentFeet, f);
+      }
       this.spo2!.push(p.red[i], p.ir[i]);
     }
   }
@@ -114,5 +122,12 @@ export class MetricsEngine {
     this.hr.reset();
     this.ecgFs = this.ppgFs = this.biozFs = 0;
     this.rpeakFlag = false;
+    this.recentRPeaks.length = 0;
+    this.recentFeet.length = 0;
   }
+}
+
+function pushCapped(arr: number[], v: number, cap = 64): void {
+  arr.push(v);
+  if (arr.length > cap) arr.shift();
 }

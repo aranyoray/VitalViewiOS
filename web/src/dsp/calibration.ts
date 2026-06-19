@@ -15,10 +15,14 @@ export interface RefPair {
   dbp: number;
 }
 
-export interface CalibrationFit {
+/** The minimum needed to predict BP from a PAT (a stored Calibration satisfies this). */
+export interface CalibCoeffs {
   model: CalibModel;
   /** y = a + b·x, where x is the model predictor. */
   coeffs: { sbp: [number, number]; dbp: [number, number] };
+}
+
+export interface CalibrationFit extends CalibCoeffs {
   rmseSbp: number;
   rmseDbp: number;
   /** Pearson R of the SBP fit (headline goodness-of-fit). */
@@ -115,11 +119,11 @@ export function fitCalibration(pairs: readonly RefPair[], model: CalibModel): Ca
   };
 }
 
-/** Predict SBP/DBP from a PAT using a stored calibration fit. */
-export function predictBp(patUs: number, fit: CalibrationFit): { sbp: number; dbp: number } {
-  const x = predictor(patUs, fit.model);
+/** Predict SBP/DBP from a PAT using stored calibration coefficients. */
+export function predictBp(patUs: number, c: CalibCoeffs): { sbp: number; dbp: number } {
+  const x = predictor(patUs, c.model);
   return {
-    sbp: fit.coeffs.sbp[0] + fit.coeffs.sbp[1] * x,
-    dbp: fit.coeffs.dbp[0] + fit.coeffs.dbp[1] * x,
+    sbp: c.coeffs.sbp[0] + c.coeffs.sbp[1] * x,
+    dbp: c.coeffs.dbp[0] + c.coeffs.dbp[1] * x,
   };
 }

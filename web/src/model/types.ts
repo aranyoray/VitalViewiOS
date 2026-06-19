@@ -2,6 +2,8 @@
 import type { CalibModel } from '../dsp/calibration';
 import type { StreamKind } from '../ble/protocol';
 
+export type { CalibModel } from '../dsp/calibration';
+
 export type SessionLabel = 'rest' | 'seated' | 'walking' | 'post-exercise' | 'other';
 export type AnnotationType = 'cuff_reading' | 'motion_start' | 'motion_stop' | 'artifact' | 'marker';
 export type MetricsSource = 'app' | 'firmware';
