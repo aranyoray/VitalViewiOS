@@ -4,7 +4,7 @@ export function DisclaimerText() {
   return (
     <div className="small">
       <p>
-        <strong>VitalView is a research / educational tool, not a medical device.</strong> It does
+        <strong>MoniVitals is a research / educational tool, not a medical device.</strong> It does
         not diagnose, treat, or monitor any medical condition and must not be used for clinical
         decisions. The heart-rate, SpO₂, pulse-arrival-time and blood-pressure values are
         uncalibrated <em>estimates</em> derived from experimental signal processing.

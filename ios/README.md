@@ -1,10 +1,10 @@
-# VitalView — iOS app
+# MoniVitals — iOS app
 
 A SwiftUI (iOS 16+) + CoreBluetooth companion app for an experimental ECG / BioZ / PPG
 wearable. It mirrors the **web app** (`../web`) and shares the algorithm / protocol /
 export specifications in [`../docs`](../docs).
 
-> ⚠️ **VitalView is a research / science-fair / educational tool, NOT a medical device.**
+> ⚠️ **MoniVitals is a research / science-fair / educational tool, NOT a medical device.**
 > It must not be used for diagnosis or any clinical decision. Heart rate, SpO₂, pulse
 > arrival time (PAT), and blood-pressure values are uncalibrated *estimates*.
 
@@ -17,27 +17,27 @@ There is no committed `.xcodeproj`; it is generated from
 brew install xcodegen
 cd ios
 xcodegen generate
-open VitalView.xcodeproj
+open MoniVitals.xcodeproj
 ```
 
-Then select the **VitalView** scheme and run on an iOS 16+ simulator or device.
+Then select the **MoniVitals** scheme and run on an iOS 16+ simulator or device.
 
 - **CoreBluetooth requires a real device** to talk to hardware. The simulator cannot
   scan/connect, but **Mock mode** makes every screen fully usable without hardware (and
   without a device).
 - Bluetooth usage is declared via `NSBluetoothAlwaysUsageDescription` (a research-tool
-  rationale) in [`VitalView/Resources/Info.plist`](VitalView/Resources/Info.plist) /
+  rationale) in [`MoniVitals/Resources/Info.plist`](MoniVitals/Resources/Info.plist) /
   `project.yml`.
 
 ### Running the tests
 
-The `VitalViewTests` target contains XCTest unit tests mirroring the web Vitest suite
+The `MoniVitalsTests` target contains XCTest unit tests mirroring the web Vitest suite
 (parser round-trips, PAT against the mock ground truth, calibration math, DSP, CSV
 export). Run them in Xcode (`⌘U`) or:
 
 ```bash
 cd ios && xcodegen generate
-xcodebuild test -scheme VitalView -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -scheme MoniVitals -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
 > The test files require an Xcode test target / Swift toolchain; they cannot run in a
@@ -48,8 +48,8 @@ xcodebuild test -scheme VitalView -destination 'platform=iOS Simulator,name=iPho
 The layers match the web app and are kept cleanly separated:
 
 ```
-VitalView/
-  App/        VitalViewApp (@main), RootView (TabView), OnboardingView (first-run gate)
+MoniVitals/
+  App/        MoniVitalsApp (@main), RootView (TabView), OnboardingView (first-run gate)
   BLE/        Protocol (UUIDs / opcodes / rate tables / sentinels), Packets, Parsers,
               Encoders — little-endian, K derived from payload length
   DSP/        DSPConstants (== docs/DSP.md), Filters (Biquad / derivative / moving avg),
@@ -67,7 +67,7 @@ VitalView/
               (Canvas + TimelineView), Connect / Dashboard / Recorder / Calibration /
               Gating / Review / Settings, UIHelpers
   Resources/  Info.plist
-VitalViewTests/  XCTest unit tests
+MoniVitalsTests/  XCTest unit tests
 ```
 
 ### Data flow

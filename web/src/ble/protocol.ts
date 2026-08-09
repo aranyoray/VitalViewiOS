@@ -52,7 +52,7 @@ export const RATE_CODES: Record<StreamKind, number[]> = {
 
 export const DEFAULT_RATE_HZ: Record<StreamKind, number> = { ecg: 256, bioz: 64, ppg: 100 };
 
-/** Default samples-per-packet used by the firmware / mock encoder (parsers derive K). */
+/** Default samples-per-packet the synthetic source batches into each stream packet. */
 export const DEFAULT_K: Record<StreamKind, number> = { ecg: 20, bioz: 16, ppg: 12 };
 
 /** Error-flag bits in the STATUS message. */

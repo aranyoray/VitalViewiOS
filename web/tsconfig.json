@@ -16,7 +16,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vitest/globals", "web-bluetooth"]
+    "types": ["vitest/globals"]
   },
   "include": ["src"]
 }

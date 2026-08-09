@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { WaveBuffer } from '../../live/ringBuffer';
+import { resolveCssColor } from '../../util/cssColor';
 
 interface Props {
   buffer: WaveBuffer;
@@ -26,9 +27,15 @@ export function WaveformCanvas({
   height = 140,
   yRange,
   getMarkers,
-  markerColor = 'rgba(255,255,255,0.35)',
+  markerColor = 'rgba(38,26,100,0.25)',
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Latest props for the rAF loop to read without re-subscribing every render
+  // (the loop runs continuously; re-creating it per render would tear down/rebuild
+  // the animation frame ~4×/s and reset it to a stale closure over the props).
+  const propsRef = useRef({ windowSec, color, height, yRange, getMarkers, markerColor });
+  propsRef.current = { windowSec, color, height, yRange, getMarkers, markerColor };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -38,6 +45,7 @@ export function WaveformCanvas({
     let raf = 0;
 
     const draw = () => {
+      const { windowSec, color, height, yRange, getMarkers, markerColor } = propsRef.current;
       const dpr = window.devicePixelRatio || 1;
       const cssW = canvas.clientWidth || 600;
       const cssH = height;
@@ -50,12 +58,26 @@ export function WaveformCanvas({
 
       const now = buffer.latestT();
       const windowUs = windowSec * 1_000_000;
+
+      // Faint vertical time grid (one line per second) for readability.
+      const secW = cssW / windowSec;
+      if (secW > 12) {
+        ctx.strokeStyle = 'rgba(38,26,100,0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let gx = cssW - secW; gx > 0; gx -= secW) {
+          ctx.moveTo(Math.round(gx) + 0.5, 0);
+          ctx.lineTo(Math.round(gx) + 0.5, cssH);
+        }
+        ctx.stroke();
+      }
+
       // Midline.
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.strokeStyle = 'rgba(38,26,100,0.10)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, cssH / 2);
-      ctx.lineTo(cssW, cssH / 2);
+      ctx.moveTo(0, Math.round(cssH / 2) + 0.5);
+      ctx.lineTo(cssW, Math.round(cssH / 2) + 0.5);
       ctx.stroke();
 
       if (now == null) {
@@ -85,7 +107,7 @@ export function WaveformCanvas({
 
         // Markers behind the trace.
         if (getMarkers) {
-          ctx.strokeStyle = markerColor;
+          ctx.strokeStyle = resolveCssColor(markerColor);
           ctx.lineWidth = 1;
           for (const m of getMarkers()) {
             if (m < tFrom || m > now) continue;
@@ -97,7 +119,7 @@ export function WaveformCanvas({
           }
         }
 
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = resolveCssColor(color);
         ctx.lineWidth = 1.5;
         ctx.lineJoin = 'round';
         ctx.beginPath();
@@ -109,12 +131,18 @@ export function WaveformCanvas({
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [buffer, windowSec, color, height, yRange, getMarkers, markerColor]);
+  }, [buffer]);
 
   return (
     <div className="wave-wrap">
       <span className="wave-label">{label}</span>
-      <canvas ref={canvasRef} className="wave" style={{ height }} />
+      <canvas
+        ref={canvasRef}
+        className="wave"
+        style={{ height }}
+        role="img"
+        aria-label={`${label} — live scrolling waveform, ${windowSec}-second window`}
+      />
     </div>
   );
 }

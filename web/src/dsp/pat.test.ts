@@ -17,11 +17,11 @@ describe('PatEstimator pairing', () => {
     expect(pat.medianMs()).toBeCloseTo(200, 5);
   });
 
-  it('rejects feet with no R-peak inside [50,400] ms', () => {
+  it('rejects feet with no R-peak inside [50,600] ms', () => {
     const pat = new PatEstimator();
     pat.addRPeak(0);
     expect(pat.addFoot(10_000)).toBeNull(); // 10 ms — too short
-    expect(pat.addFoot(500_000)).toBeNull(); // 500 ms — too long
+    expect(pat.addFoot(700_000)).toBeNull(); // 700 ms — too long (> PAT_MAX_MS = 600)
     expect(pat.addFoot(200_000)).toBe(200_000); // valid
   });
 });

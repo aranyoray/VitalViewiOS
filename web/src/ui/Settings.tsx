@@ -8,7 +8,10 @@ import { DEFAULT_MOCK_PARAMS } from '../source/mockSignal';
 export function SettingsScreen() {
   const settings = useAppStore((s) => s.settings);
   const update = useAppStore((s) => s.updateSettings);
-  const isMock = useAppStore((s) => s.isMock);
+  const modelName = useAppStore((s) => s.modelName);
+  // Demo-signal controls only make sense for the tunable synthetic source; they
+  // no-op under the fixed real-recording replay, so hide them then (iOS parity).
+  const isTunableSignal = useAppStore((s) => s.isTunableSignal);
   const setMockParams = useAppStore((s) => s.setMockParams);
   const refreshSubjects = useAppStore((s) => s.refreshSubjects);
 
@@ -26,11 +29,12 @@ export function SettingsScreen() {
     <>
       <div className="card">
         <h2>Metrics &amp; DSP</h2>
-        <label className="field" style={{ maxWidth: 320 }}>
+        <p className="small muted">Model: {modelName}</p>
+        <label className="field" style={{ maxWidth: 320, marginTop: 12 }}>
           Metrics source
           <select value={settings.metricsSource} onChange={(e) => update({ metricsSource: e.target.value as MetricsSource })}>
             <option value="app">App-computed (iterate algorithms here)</option>
-            <option value="firmware">Firmware-computed (on-device)</option>
+            <option value="firmware">Recording-provided (reference values)</option>
           </select>
         </label>
         <label className="field" style={{ maxWidth: 320, marginTop: 12 }}>
@@ -54,15 +58,15 @@ export function SettingsScreen() {
             </label>
           ))}
         </div>
-        <p className="muted small">Changes are sent to a connected device via SET_RATE.</p>
+        <p className="muted small">Sets the sample rate the app requests for each stream.</p>
       </div>
 
       <div className="card">
         <h2>Gating thresholds</h2>
-        <label className="field">Motion threshold: {settings.motionThresh.toExponential(1)}
+        <label className="field">Motion threshold: {(settings.motionThresh / 1e6).toFixed(1)}×10⁶
           <input type="range" min={1e6} max={2e7} step={1e5} value={settings.motionThresh} onChange={(e) => update({ motionThresh: Number(e.target.value) })} />
         </label>
-        <label className="field">Contact threshold (mΩ): {settings.contactThresh.toExponential(1)}
+        <label className="field">Contact threshold (mΩ): {(settings.contactThresh / 1e6).toFixed(1)}×10⁶
           <input type="range" min={1e6} max={2e7} step={1e5} value={settings.contactThresh} onChange={(e) => update({ contactThresh: Number(e.target.value) })} />
         </label>
         <label className="field">Gating window (ms): {settings.gatingWindowMs}
@@ -70,31 +74,21 @@ export function SettingsScreen() {
         </label>
       </div>
 
-      <div className="card">
-        <h2>Mock generator</h2>
-        <p className="muted small">{isMock ? 'Connected to the mock device — changes apply live.' : 'Connect the mock device to apply these.'}</p>
-        <label className="field">Heart rate: {mock.hrBpm} bpm
-          <input type="range" min={40} max={160} step={1} value={mock.hrBpm} onChange={(e) => applyMock({ hrBpm: Number(e.target.value) })} />
-        </label>
-        <label className="field">PAT: {mock.patMs} ms
-          <input type="range" min={120} max={350} step={5} value={mock.patMs} onChange={(e) => applyMock({ patMs: Number(e.target.value) })} />
-        </label>
-        <label className="field">SpO₂ target: {mock.spo2Target}%
-          <input type="range" min={90} max={100} step={1} value={mock.spo2Target} onChange={(e) => applyMock({ spo2Target: Number(e.target.value) })} />
-        </label>
-      </div>
-
-      <div className="card">
-        <h2>Appearance</h2>
-        <label className="field" style={{ maxWidth: 240 }}>
-          Theme
-          <select value={settings.theme} onChange={(e) => update({ theme: e.target.value as 'dark' | 'light' | 'system' })}>
-            <option value="system">System</option>
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-        </label>
-      </div>
+      {isTunableSignal && (
+        <div className="card">
+          <h2>Demo signal</h2>
+          <p className="muted small">Adjust the synthetic demo signal — changes apply live.</p>
+          <label className="field">Heart rate: {mock.hrBpm} bpm
+            <input type="range" min={40} max={160} step={1} value={mock.hrBpm} onChange={(e) => applyMock({ hrBpm: Number(e.target.value) })} />
+          </label>
+          <label className="field">PAT: {mock.patMs} ms
+            <input type="range" min={120} max={350} step={5} value={mock.patMs} onChange={(e) => applyMock({ patMs: Number(e.target.value) })} />
+          </label>
+          <label className="field">SpO₂ target: {mock.spo2Target}%
+            <input type="range" min={90} max={100} step={1} value={mock.spo2Target} onChange={(e) => applyMock({ spo2Target: Number(e.target.value) })} />
+          </label>
+        </div>
+      )}
 
       <div className="card">
         <h2>Data management</h2>

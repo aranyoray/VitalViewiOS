@@ -16,7 +16,19 @@ import { predictBp, type CalibCoeffs } from './calibration';
 
 export interface MetricsSnapshot extends Omit<MetricsPacket, 'kind'> {}
 
-export class MetricsEngine {
+/**
+ * On-device model interface. The DSP engine is surfaced to the app as a named model:
+ * it ingests raw stream packets and, when asked, infers a vitals snapshot at a given
+ * device timestamp. No hardware and no network — everything runs locally in the browser.
+ */
+export interface VitalsModel {
+  readonly name: string;
+  infer(tUs: number): MetricsSnapshot;
+}
+
+export class MetricsEngine implements VitalsModel {
+  readonly name = 'MoniVitals DSP Model v1 · on-device';
+
   private rpeak?: RPeakDetector;
   private foot?: PpgFootDetector;
   private contact?: ContactMotionEstimator;
@@ -111,6 +123,11 @@ export class MetricsEngine {
     };
     this.rpeakFlag = false;
     return snap;
+  }
+
+  /** Model inference: identical to {@link snapshot}, exposed via the VitalsModel surface. */
+  infer(tUs: number): MetricsSnapshot {
+    return this.snapshot(tUs);
   }
 
   reset(): void {

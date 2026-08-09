@@ -20,8 +20,16 @@ export function CalibrationScreen() {
   const livePatMs = live?.patUs != null ? Math.round(live.patUs / 1000) : null;
   const fit = fitCalibration(pairs, model);
 
+  const s = Number(sbp);
+  const d = Number(dbp);
+  const bpValid = Number.isFinite(s) && Number.isFinite(d) && s > 40 && s < 260 && d > 20 && d < 200 && d < s;
+
   const onAdd = () => {
-    const ok = addPair(Number(sbp), Number(dbp));
+    if (!bpValid) {
+      setMsg('Enter a plausible cuff reading (SBP 40–260, DBP 20–200, DBP < SBP).');
+      return;
+    }
+    const ok = addPair(s, d);
     setMsg(ok ? null : 'No PAT available yet — start streaming and wait for a stable PAT.');
   };
 
@@ -46,9 +54,9 @@ export function CalibrationScreen() {
           </div>
           <label className="field">Cuff SBP<input inputMode="numeric" value={sbp} onChange={(e) => setSbp(e.target.value)} /></label>
           <label className="field">Cuff DBP<input inputMode="numeric" value={dbp} onChange={(e) => setDbp(e.target.value)} /></label>
-          <button className="btn" disabled={!subject || livePatMs == null} onClick={onAdd}>Capture pair</button>
+          <button className="btn" disabled={!subject || livePatMs == null || !bpValid} onClick={onAdd}>Capture pair</button>
         </div>
-        {msg && <p className="small" style={{ color: 'var(--warn)' }}>{msg}</p>}
+        {msg && <p className="small" style={{ color: 'var(--warn-text)' }}>{msg}</p>}
       </div>
 
       <div className="card">
@@ -69,7 +77,7 @@ export function CalibrationScreen() {
                   <td>{(1 / (p.patUs / 1e6)).toFixed(2)}</td>
                   <td>{p.sbp}</td>
                   <td>{p.dbp}</td>
-                  <td><button className="btn secondary" onClick={() => removePair(i)}>✕</button></td>
+                  <td><button className="btn secondary" aria-label={`Remove pair ${i + 1}`} onClick={() => removePair(i)}>✕</button></td>
                 </tr>
               ))}
             </tbody>
@@ -140,9 +148,9 @@ function Scatter({ pairs, model, coeffs }: { pairs: RefPair[]; model: 'linear_in
     const sx = (x: number) => pad + ((x - xlo) / (xhi - xlo || 1)) * (W - pad - 10);
     const sy = (y: number) => H - pad - ((y - ylo) / (yhi - ylo || 1)) * (H - pad - 10);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.strokeStyle = 'rgba(38,26,100,0.20)';
     ctx.beginPath(); ctx.moveTo(pad, 10); ctx.lineTo(pad, H - pad); ctx.lineTo(W - 10, H - pad); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '11px sans-serif';
+    ctx.fillStyle = 'rgba(38,26,100,0.65)'; ctx.font = '11px sans-serif';
     ctx.fillText(model === 'linear_invPAT' ? '1/PAT (s⁻¹)' : 'PAT (s)', W / 2 - 30, H - 8);
     ctx.save(); ctx.translate(12, H / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('SBP (mmHg)', -30, 0); ctx.restore();
 
@@ -154,5 +162,5 @@ function Scatter({ pairs, model, coeffs }: { pairs: RefPair[]; model: 'linear_in
     ctx.fillStyle = '#38d39f';
     for (let i = 0; i < xs.length; i++) { ctx.beginPath(); ctx.arc(sx(xs[i]), sy(ys[i]), 4, 0, Math.PI * 2); ctx.fill(); }
   }, [pairs, model, coeffs]);
-  return <canvas ref={ref} className="wave" style={{ height: 220, marginTop: 12 }} />;
+  return <canvas ref={ref} className="wave" style={{ height: 220, marginTop: 12 }} role="img" aria-label="Scatter of SBP versus the PAT predictor with the fitted regression line" />;
 }

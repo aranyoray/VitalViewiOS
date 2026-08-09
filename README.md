@@ -1,4 +1,4 @@
-# VitalView
+# MoniVitals
 
 Companion apps — **web** and **native iOS** — for a battery-powered wrist/forearm
 wearable that streams biosignals over Bluetooth Low Energy (BLE):
@@ -39,11 +39,11 @@ web/             React + TypeScript + Vite web app (Web Bluetooth)
   src/**/*.test.ts Vitest unit tests (DSP validated against mock ground truth)
 
 ios/             SwiftUI (iOS 16+) app, CoreBluetooth — mirrors the web architecture
-  VitalView/BLE/   CBCentralManager wrapper + parsers + protocol constants
-  VitalView/Source/ DataSource protocol; BleSource + MockSource
-  VitalView/DSP/   Same algorithms / constants as the web DSP module
-  VitalView/Model/ Models + persistence + CSV export
-  VitalView/Views/ SwiftUI screens mirroring the web UI
+  MoniVitals/BLE/   CBCentralManager wrapper + parsers + protocol constants
+  MoniVitals/Source/ DataSource protocol; BleSource + MockSource
+  MoniVitals/DSP/   Same algorithms / constants as the web DSP module
+  MoniVitals/Model/ Models + persistence + CSV export
+  MoniVitals/Views/ SwiftUI screens mirroring the web UI
   project.yml      XcodeGen spec (generate the .xcodeproj with `xcodegen generate`)
 ```
 

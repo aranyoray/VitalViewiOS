@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { buffers } from '../live/runtime';
 import { gateEcg } from '../dsp/bioz';
+import { resolveCssColor } from '../util/cssColor';
 
 const WINDOW_SEC = 8;
 
 export function GatingScreen() {
   const settings = useAppStore((s) => s.settings);
   const update = useAppStore((s) => s.updateSettings);
-  const isMock = useAppStore((s) => s.isMock);
+  const isTunableSignal = useAppStore((s) => s.isTunableSignal);
   const injectMotion = useAppStore((s) => s.injectMockMotion);
   const [goodPct, setGoodPct] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -30,7 +31,7 @@ export function GatingScreen() {
       canvas.height = H * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillStyle = resolveCssColor('var(--muted)', '#6b6785');
       ctx.font = '12px sans-serif';
       ctx.fillText('Raw ECG', 8, 16);
       ctx.fillText('BioZ-gated ECG', 8, H / 2 + 16);
@@ -65,12 +66,12 @@ export function GatingScreen() {
         ctx.fillStyle = w.good ? 'rgba(56,211,159,0.07)' : 'rgba(255,107,107,0.16)';
         ctx.fillRect(x0, 0, x1 - x0, H);
       }
-      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.strokeStyle = 'rgba(38,26,100,0.10)';
       ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
 
       const drawTrace = (vals: (number | null)[], yTop: number, yH: number, color: string) => {
         const yOf = (v: number) => yTop + yH - ((v - lo) / (hi - lo)) * yH;
-        ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.beginPath();
+        ctx.strokeStyle = resolveCssColor(color); ctx.lineWidth = 1.4; ctx.beginPath();
         let pen = false;
         for (let i = 0; i < ecg.t.length; i++) {
           const v = vals[i];
@@ -100,7 +101,7 @@ export function GatingScreen() {
             <div className="label">Good segments</div>
             <div className="value">{goodPct == null ? '—' : `${goodPct.toFixed(0)}%`}</div>
           </div>
-          {isMock && <button className="btn secondary" onClick={injectMotion}>Inject motion burst</button>}
+          {isTunableSignal && <button className="btn secondary" onClick={injectMotion}>Inject motion burst</button>}
         </div>
         <div className="legend" style={{ marginTop: 8 }}>
           <span><span className="dot" style={{ background: 'rgba(56,211,159,0.5)' }} />good window</span>
@@ -109,7 +110,13 @@ export function GatingScreen() {
       </div>
 
       <div className="card">
-        <canvas ref={canvasRef} className="wave" style={{ height: 300 }} />
+        <canvas
+          ref={canvasRef}
+          className="wave"
+          style={{ height: 300 }}
+          role="img"
+          aria-label="Raw ECG above and BioZ-gated ECG below; rejected motion or poor-contact windows are shaded."
+        />
       </div>
 
       <div className="card">

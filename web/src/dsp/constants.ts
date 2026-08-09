@@ -1,5 +1,5 @@
 /**
- * DSP constants — must match docs/DSP.md and ios/VitalView/DSP/DSPConstants.swift.
+ * DSP constants — must match docs/DSP.md and ios/MoniVitals/DSP/DSPConstants.swift.
  * MOTION_THRESH / CONTACT_THRESH are user-adjustable in Settings; the rest are fixed.
  */
 export const ECG_BP_LOW_HZ = 5.0;
@@ -9,7 +9,9 @@ export const QRS_REFRACTORY_MS = 200;
 export const QRS_THRESH_FRAC = 0.25;
 
 export const PAT_MIN_MS = 50;
-export const PAT_MAX_MS = 400;
+// Widened from 400ms: a recorded monitor's PLETH channel adds ~150ms of processing
+// delay, inflating the measured R→foot (pulse-arrival) interval on real recordings.
+export const PAT_MAX_MS = 600;
 export const PAT_MEDIAN_N = 7;
 
 export const HR_MEDIAN_N = 5;

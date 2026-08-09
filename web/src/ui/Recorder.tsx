@@ -16,6 +16,7 @@ export function RecorderScreen() {
   const selectSubject = useAppStore((s) => s.selectSubject);
   const saveSubject = useAppStore((s) => s.saveSubject);
   const connected = useAppStore((s) => s.connectionState === 'connected');
+  const loadError = useAppStore((s) => s.loadError);
   const recording = useAppStore((s) => s.recording);
   const counts = useAppStore((s) => s.recordCounts);
   const durationMs = useAppStore((s) => s.recordDurationMs);
@@ -76,7 +77,8 @@ export function RecorderScreen() {
           ) : (
             <button className="btn danger" onClick={() => void stopRecording()}>■ Stop recording</button>
           )}
-          {!connected && <span className="small muted">Connect a device first.</span>}
+          {!connected && !loadError && <span className="small muted">Waiting for the signal to start…</span>}
+          {!connected && loadError && <span className="small" style={{ color: 'var(--bad)' }}>Recording is unavailable — the signal failed to load.</span>}
           {connected && !currentSubjectCode && <span className="small muted">Select a subject first.</span>}
         </div>
 

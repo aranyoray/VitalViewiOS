@@ -127,5 +127,5 @@ export async function exportSession(sessionId: string): Promise<{ blob: Blob; fi
   const folder = `${session.label}_${session.id.slice(0, 8)}`;
   // zipStore returns a Uint8Array view; copy into a fresh ArrayBuffer for the Blob.
   const blob = new Blob([zip.slice()], { type: 'application/zip' });
-  return { blob, filename: `vitalview_${folder}.zip` };
+  return { blob, filename: `monivitals_${folder}.zip` };
 }

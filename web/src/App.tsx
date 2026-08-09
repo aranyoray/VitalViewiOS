@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from './store/appStore';
 import { OnboardingGate } from './ui/OnboardingGate';
-import { ConnectScreen } from './ui/Connect';
 import { DashboardScreen } from './ui/Dashboard';
 import { RecorderScreen } from './ui/Recorder';
 import { CalibrationScreen } from './ui/Calibration';
@@ -10,9 +9,8 @@ import { ReviewScreen } from './ui/Review';
 import { SettingsScreen } from './ui/Settings';
 import { AboutScreen } from './ui/About';
 
-type Tab = 'connect' | 'dashboard' | 'recorder' | 'calibration' | 'gating' | 'review' | 'settings' | 'about';
+type Tab = 'dashboard' | 'recorder' | 'calibration' | 'gating' | 'review' | 'settings' | 'about';
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'connect', label: 'Connect' },
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'recorder', label: 'Record' },
   { id: 'calibration', label: 'Calibration' },
@@ -25,30 +23,17 @@ const TABS: { id: Tab; label: string }[] = [
 export default function App() {
   const settings = useAppStore((s) => s.settings);
   const refreshSubjects = useAppStore((s) => s.refreshSubjects);
-  const [tab, setTab] = useState<Tab>('connect');
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const resolve = () =>
-      settings.theme === 'system'
-        ? window.matchMedia('(prefers-color-scheme: light)').matches
-          ? 'light'
-          : 'dark'
-        : settings.theme;
-    const apply = () => {
-      const t = resolve();
-      if (t === 'light') root.setAttribute('data-theme', 'light');
-      else root.removeAttribute('data-theme');
-    };
-    apply();
-    const mq = window.matchMedia('(prefers-color-scheme: light)');
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, [settings.theme]);
+  const autoStart = useAppStore((s) => s.autoStart);
+  const [tab, setTab] = useState<Tab>('dashboard');
 
   useEffect(() => {
     void refreshSubjects();
   }, [refreshSubjects]);
+
+  // Standalone: connect the synthetic source and start streaming once on mount.
+  useEffect(() => {
+    void autoStart();
+  }, [autoStart]);
 
   const onboarded = settings.disclaimerAcknowledged && settings.consentAccepted;
 
@@ -63,7 +48,6 @@ export default function App() {
         ))}
       </nav>
       <main className="content">
-        {tab === 'connect' && <ConnectScreen />}
         {tab === 'dashboard' && <DashboardScreen />}
         {tab === 'recorder' && <RecorderScreen />}
         {tab === 'calibration' && <CalibrationScreen />}
@@ -78,22 +62,24 @@ export default function App() {
 }
 
 function TopBar() {
-  const state = useAppStore((s) => s.connectionState);
+  const streaming = useAppStore((s) => s.streaming);
   const battery = useAppStore((s) => s.batteryPct);
   const deviceName = useAppStore((s) => s.deviceName);
-  const isMock = useAppStore((s) => s.isMock);
+  const isTunableSignal = useAppStore((s) => s.isTunableSignal);
   const dropped = useAppStore((s) => s.dropped);
   const totalDropped = dropped.ecg + dropped.bioz + dropped.ppg;
 
-  const connected = state === 'connected';
   return (
     <header className="topbar">
-      <span className="brand">VitalView</span>
+      <span className="brand-lockup">
+        <img src="/logo.png" alt="MoniVitals" className="brand-logo" />
+        <span className="brand">MoniVitals</span>
+      </span>
       <span className="disclaimer-chip">Not a medical device</span>
       <span className="spacer" />
       <span className="status">
-        {deviceName && <span>{deviceName}{isMock ? ' (mock)' : ''}</span>}
-        <span className={`badge ${connected ? 'good' : state === 'reconnecting' ? 'warn' : ''}`}>{state}</span>
+        {deviceName && <span>{deviceName}{isTunableSignal ? ' (demo)' : ''}</span>}
+        <span className={`badge ${streaming ? 'good' : ''}`}>{streaming ? 'Live' : 'Paused'}</span>
         {totalDropped > 0 && <span className="badge warn">dropped {totalDropped}</span>}
         {battery != null && <span>{battery}%</span>}
       </span>

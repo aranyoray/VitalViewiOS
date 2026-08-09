@@ -9,7 +9,7 @@ import type {
   Subject,
 } from './types';
 
-export class VitalViewDB extends Dexie {
+export class MoniVitalsDB extends Dexie {
   subjects!: Table<Subject, string>;
   sessions!: Table<Session, string>;
   chunks!: Table<StreamChunk, number>;
@@ -18,7 +18,7 @@ export class VitalViewDB extends Dexie {
   calibrations!: Table<Calibration, number>;
 
   constructor() {
-    super('vitalview');
+    super('monivitals');
     this.version(1).stores({
       subjects: 'code, createdAt',
       sessions: 'id, subjectCode, startedAt',
@@ -30,4 +30,4 @@ export class VitalViewDB extends Dexie {
   }
 }
 
-export const db = new VitalViewDB();
+export const db = new MoniVitalsDB();

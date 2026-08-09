@@ -24,13 +24,13 @@ import {
   upsertSubject,
 } from '../model/repository';
 import type { AnnotationType, AppSettings, Calibration, Session, SessionLabel, Subject } from '../model/types';
-import { BleSource } from '../source/BleSource';
 import type { ConnectionState, DataSource } from '../source/DataSource';
 import { MockSource } from '../source/MockSource';
+import { ReplaySource } from '../source/ReplaySource';
 import type { MockParams } from '../source/mockSignal';
 import { downloadBlob } from '../util/download';
 
-const SETTINGS_KEY = 'vitalview.settings';
+const SETTINGS_KEY = 'monivitals.settings';
 const TICK_MS = 250;
 
 function loadSettings(): AppSettings {
@@ -41,13 +41,19 @@ function loadSettings(): AppSettings {
     gatingWindowMs: MOTION_WINDOW_MS,
     calibModel: 'linear_invPAT',
     streamRates: { ecg: 256, bioz: 64, ppg: 100 },
-    theme: 'system',
+    theme: 'light',
     consentAccepted: false,
     disclaimerAcknowledged: false,
   };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as unknown;
+    // Only merge a plain object; ignore corrupt shapes (null, arrays, primitives).
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { ...defaults, ...(parsed as Partial<AppSettings>) };
+    }
+    return defaults;
   } catch {
     return defaults;
   }
@@ -57,8 +63,18 @@ interface AppState {
   settings: AppSettings;
   updateSettings: (partial: Partial<AppSettings>) => void;
 
+  /** Name of the on-device metrics model (the DSP engine surfaced as a model). */
+  modelName: string;
+
   source: DataSource | null;
   isMock: boolean;
+  /**
+   * True only for the tunable synthetic MockSource (drives the demo-signal controls).
+   * The ReplaySource is also "mock" (no hardware) but replays a fixed real recording,
+   * so its signal is NOT tunable — the mock HR/PAT/SpO₂ sliders + inject-motion no-op
+   * under it and are hidden. Mirrors iOS AppModel.isTunableSignal.
+   */
+  isTunableSignal: boolean;
   connectionState: ConnectionState;
   deviceName: string | null;
   batteryPct: number | null;
@@ -66,6 +82,19 @@ interface AppState {
   dropped: Record<StreamKind, number>;
   clockOffsetUs: number | null;
   streaming: boolean;
+
+  /**
+   * Human-readable reason the real-recording stream could not start (e.g. the
+   * bundled recording failed to fetch). Null while loading or once streaming.
+   * Surfaced as a graceful error card instead of an indefinite "starting…" state.
+   */
+  loadError: string | null;
+  retryAutoStart: () => Promise<void>;
+
+  /** Real-recording provenance (populated when the ReplaySource is active). */
+  recordingName: string | null;
+  referenceHR: number | null;
+  referenceSpO2: number | null;
 
   appMetrics: MetricsSnapshot | null;
   firmwareMetrics: MetricsPacket | null;
@@ -84,7 +113,8 @@ interface AppState {
 
   // actions
   connectMock: () => Promise<void>;
-  connectBle: () => Promise<void>;
+  connectReplay: () => Promise<void>;
+  autoStart: () => Promise<void>;
   disconnect: () => Promise<void>;
   startStreaming: () => Promise<void>;
   stopStreaming: () => Promise<void>;
@@ -110,6 +140,9 @@ interface AppState {
 let recorder: Recorder | null = null;
 let tickHandle: ReturnType<typeof setInterval> | null = null;
 let unsubscribers: Array<() => void> = [];
+/** In-flight guard for autoStart: prevents a duplicate source when the mount
+ *  effect fires twice (React 18 StrictMode) before the first `set({source})`. */
+let autoStartInFlight: Promise<void> | null = null;
 
 export const useAppStore = create<AppState>((set, get) => {
   // ---- packet handlers (mutate the non-reactive runtime only) ----
@@ -189,9 +222,14 @@ export const useAppStore = create<AppState>((set, get) => {
 
   return {
     settings: loadSettings(),
+    modelName: engine.name,
     updateSettings: (partial) => {
       const settings = { ...get().settings, ...partial };
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      } catch {
+        // Persistence unavailable (private mode / quota); keep the in-memory update.
+      }
       engine.setMotionThresh(settings.motionThresh);
       // Push rate changes to a connected device.
       const src = get().source;
@@ -205,6 +243,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
     source: null,
     isMock: false,
+    isTunableSignal: false,
     connectionState: 'disconnected',
     deviceName: null,
     batteryPct: null,
@@ -212,6 +251,12 @@ export const useAppStore = create<AppState>((set, get) => {
     dropped: { ecg: 0, bioz: 0, ppg: 0 },
     clockOffsetUs: null,
     streaming: false,
+
+    loadError: null,
+
+    recordingName: null,
+    referenceHR: null,
+    referenceSpO2: null,
 
     appMetrics: null,
     firmwareMetrics: null,
@@ -232,29 +277,84 @@ export const useAppStore = create<AppState>((set, get) => {
       await teardownSource();
       const source = new MockSource();
       engine.setMotionThresh(get().settings.motionThresh);
-      set({ source, isMock: true, deviceName: source.deviceName });
+      set({ source, isMock: true, isTunableSignal: true, deviceName: source.deviceName });
       wire(source);
       await source.connect();
       await source.syncClock();
       set({ clockOffsetUs: source.clockOffsetUs });
     },
 
-    connectBle: async () => {
-      if (!BleSource.isSupported()) {
-        set({ connectionState: 'unsupported' });
-        return;
-      }
+    /** Connect the real-recording (Replay) source, loading the asset first. */
+    connectReplay: async () => {
       await teardownSource();
-      const source = new BleSource();
-      set({ source, isMock: false });
+      const source = new ReplaySource();
+      // Fetch + decode the bundled recording before wiring so reference values are ready.
+      await source.load();
+      engine.setMotionThresh(get().settings.motionThresh);
+      set({
+        source,
+        isMock: true,
+        isTunableSignal: false, // replay is a fixed real recording — not tunable
+        deviceName: source.deviceName,
+        recordingName: source.recordingName,
+        referenceHR: source.referenceHR,
+        referenceSpO2: source.referenceSpO2,
+      });
       wire(source);
       await source.connect();
+      await source.syncClock();
+      set({ clockOffsetUs: source.clockOffsetUs });
+    },
+
+    /** Replay the REAL recorded biosignal and begin streaming. Idempotent. */
+    autoStart: async () => {
+      if (get().source) return;
+      // Coalesce concurrent calls (StrictMode double-mount) onto one connect.
+      if (autoStartInFlight) return autoStartInFlight;
+      set({ loadError: null });
+      autoStartInFlight = (async () => {
+        try {
+          await get().connectReplay();
+          await get().startStreaming();
+        } catch (err) {
+          // A failed fetch of the bundled recording (offline, blocked, 404, corrupt
+          // JSON) must surface as a graceful error card — not an indefinite spinner.
+          await teardownSource().catch(() => {});
+          set({
+            source: null,
+            streaming: false,
+            connectionState: 'disconnected',
+            loadError:
+              err instanceof Error ? err.message : 'Could not load the recording.',
+          });
+        } finally {
+          autoStartInFlight = null;
+        }
+      })();
+      return autoStartInFlight;
+    },
+
+    /** Clear the last load error and re-attempt the auto-start flow. */
+    retryAutoStart: async () => {
+      set({ loadError: null });
+      await get().autoStart();
     },
 
     disconnect: async () => {
       await get().stopRecording();
       await teardownSource();
-      set({ source: null, streaming: false, connectionState: 'disconnected', firmwareMetrics: null });
+      set({
+        source: null,
+        isMock: false,
+        isTunableSignal: false,
+        streaming: false,
+        connectionState: 'disconnected',
+        loadError: null,
+        firmwareMetrics: null,
+        recordingName: null,
+        referenceHR: null,
+        referenceSpO2: null,
+      });
     },
 
     startStreaming: async () => {

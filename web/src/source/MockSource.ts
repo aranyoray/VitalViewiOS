@@ -23,7 +23,7 @@ interface StreamState {
 export class MockSource extends BaseDataSource {
   readonly isMock = true;
   clockOffsetUs: number | null = null;
-  deviceName = 'VitalView Mock';
+  deviceName = 'MoniVitals Mock';
 
   private signal: MockSignal;
   private streams: Record<StreamKind, StreamState>;

@@ -1,7 +1,7 @@
 # BLE protocol — single source of truth
 
 This document defines the custom GATT service exposed by the wearable firmware. The
-firmware, the web app (`web/src/ble`), and the iOS app (`ios/VitalView/BLE`) must all
+firmware, the web app (`web/src/ble`), and the iOS app (`ios/MoniVitals/BLE`) must all
 agree with this document. **All multi-byte fields are little-endian.**
 
 Samples are **batched** per notification to respect BLE throughput. Assume a ~20 ms

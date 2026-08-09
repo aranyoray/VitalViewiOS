@@ -10,6 +10,7 @@ import {
 } from '../model/repository';
 import type { Annotation, MetricsRecord, Session } from '../model/types';
 import { median } from '../dsp/rollingStats';
+import { resolveCssColor } from '../util/cssColor';
 
 export function ReviewScreen() {
   const exportZip = useAppStore((s) => s.exportSessionZip);
@@ -45,7 +46,11 @@ export function ReviewScreen() {
       <div className="card">
         <h2>Sessions</h2>
         {sessions.length === 0 ? (
-          <p className="muted small">No recordings yet. Record a session on the Record tab (mock mode works).</p>
+          <div className="empty-state" style={{ padding: '20px 12px' }}>
+            <div className="empty-badge" aria-hidden="true">📁</div>
+            <p className="muted small" style={{ margin: 0 }}>No recordings yet.</p>
+            <p className="muted small" style={{ margin: 0 }}>Record a session on the Record tab and it will appear here.</p>
+          </div>
         ) : (
           <table>
             <thead><tr><th>Started</th><th>Subject</th><th>Condition</th><th>Duration</th><th /></tr></thead>
@@ -141,7 +146,7 @@ function StaticPlot({ t, v, color }: { t: Float64Array; v: Int32Array | Uint32Ar
     canvas.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    if (t.length < 2) { ctx.fillStyle = 'var(--muted)'; ctx.fillText('no data', 8, H / 2); return; }
+    if (t.length < 2) { ctx.fillStyle = resolveCssColor('var(--muted)', '#6b6785'); ctx.fillText('no data', 8, H / 2); return; }
     const target = Math.min(W * 2, t.length);
     const stride = Math.max(1, Math.floor(t.length / target));
     let lo = Infinity, hi = -Infinity;
@@ -150,7 +155,7 @@ function StaticPlot({ t, v, color }: { t: Float64Array; v: Int32Array | Uint32Ar
     const t0 = t[0], t1 = t[t.length - 1];
     const xOf = (ts: number) => ((ts - t0) / (t1 - t0 || 1)) * W;
     const yOf = (val: number) => H - ((val - lo) / (hi - lo)) * (H - 6) - 3;
-    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.strokeStyle = resolveCssColor(color); ctx.lineWidth = 1; ctx.beginPath();
     let first = true;
     for (let i = 0; i < t.length; i += stride) {
       const x = xOf(t[i]), y = yOf(v[i]);
@@ -158,5 +163,5 @@ function StaticPlot({ t, v, color }: { t: Float64Array; v: Int32Array | Uint32Ar
     }
     ctx.stroke();
   }, [t, v, color]);
-  return <canvas ref={ref} className="wave" style={{ height: 130 }} />;
+  return <canvas ref={ref} className="wave" style={{ height: 130 }} role="img" aria-label="Full-session waveform plot" />;
 }

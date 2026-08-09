@@ -1,7 +1,7 @@
 # Signal processing — algorithm specification
 
 These algorithms are implemented **identically** in TypeScript (`web/src/dsp`) and Swift
-(`ios/VitalView/DSP`). Constants live in one place per platform (`dsp/constants.ts`,
+(`ios/MoniVitals/DSP`). Constants live in one place per platform (`dsp/constants.ts`,
 `DSP/DSPConstants.swift`) and must match this document. The web implementation is
 **unit-tested against the mock generator's known ground truth** (especially PAT).
 

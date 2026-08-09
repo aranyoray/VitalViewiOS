@@ -13,7 +13,7 @@ export function OnboardingGate() {
   return (
     <div className="overlay">
       <div className="modal">
-        <h2>VitalView</h2>
+        <h2>MoniVitals</h2>
         {step === 'disclaimer' ? (
           <>
             <h3>Before you begin</h3>

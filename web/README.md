@@ -1,6 +1,6 @@
-# VitalView — web app
+# MoniVitals — web app
 
-React + TypeScript + Vite companion app for the VitalView ECG/BioZ/PPG wearable. **Not a
+React + TypeScript + Vite companion app for the MoniVitals ECG/BioZ/PPG wearable. **Not a
 medical device** — a research / educational tool.
 
 ## Run
